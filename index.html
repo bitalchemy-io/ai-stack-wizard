@@ -405,13 +405,7 @@ pre#yamlOut{
 
     <div class="ram-banner" id="ramBanner"></div>
 
-    <!-- Model picker -->
-    <div class="model-section">
-      <div class="model-title">🧠 Ollama Models — select which models to pull on startup</div>
-      <div class="model-grid" id="modelGrid"></div>
-    </div>
-
-    <!-- Service categories -->
+    <!-- Service categories (Core Inference first, then model picker injected, then rest) -->
     <div id="serviceCategories"></div>
   </div>
 
@@ -796,7 +790,6 @@ let tempCfg = {};
 
 // ── Init ──────────────────────────────────────────────────────
 function init() {
-  renderModels();
   renderServices();
   // Auto-select Ollama
   selected['ollama'] = defaultConfig('ollama');
@@ -851,9 +844,18 @@ function renderServices() {
     'Audio & Speech':'🎙️','Document AI':'📄',
   };
 
+  // Fixed category order — Core Inference always first
+  const CAT_ORDER = [
+    'Core Inference','Chat Interface','Workflow Automation',
+    'AI Agents & RAG','AI Gateway','Observability','Audio & Speech','Document AI',
+  ];
+
   const container = document.getElementById('serviceCategories');
   let delay = 0;
-  Object.entries(cats).forEach(([cat, svcs]) => {
+
+  CAT_ORDER.forEach(cat => {
+    if (!cats[cat]) return;
+    const svcs = cats[cat];
     const block = document.createElement('div');
     block.className = 'cat-block';
     block.innerHTML = `
@@ -864,6 +866,18 @@ function renderServices() {
         ${svcs.map(s => svcCardHTML(s, delay+=50)).join('')}
       </div>`;
     container.appendChild(block);
+
+    // Inject model picker directly after Core Inference block
+    if (cat === 'Core Inference') {
+      const modelSection = document.createElement('div');
+      modelSection.className = 'model-section';
+      modelSection.innerHTML = `
+        <div class="model-title">🧠 Ollama Models — select which models to pull on startup</div>
+        <div class="model-grid" id="modelGrid"></div>`;
+      container.appendChild(modelSection);
+      // Render models into the injected grid
+      setTimeout(() => renderModels(), 0);
+    }
   });
 }
 
